@@ -1,5 +1,8 @@
-const takePhotoBtn = document.getElementById("takePhoto");
-const cameraInput = document.getElementById("cameraInput");
+const photoInput = document.getElementById("photoInput");
+const videoInput = document.getElementById("videoInput");
+
+const photoBtn = document.getElementById("photoBtn");
+const videoBtn = document.getElementById("videoBtn");
 
 const imagePreview = document.getElementById("imagePreview");
 const videoPreview = document.getElementById("videoPreview");
@@ -9,40 +12,51 @@ const status = document.getElementById("status");
 
 let selectedFile = null;
 
-// Abrir cámara
-takePhotoBtn.addEventListener("click", () => {
-    cameraInput.click();
+// Abrir cámara de fotos
+photoBtn.addEventListener("click", () => {
+    photoInput.click();
 });
 
-// Mostrar vista previa
-cameraInput.addEventListener("change", () => {
+// Abrir cámara de video
+videoBtn.addEventListener("click", () => {
+    videoInput.click();
+});
 
-    selectedFile = cameraInput.files[0];
+// Seleccionar foto
+photoInput.addEventListener("change", () => {
+
+    selectedFile = photoInput.files[0];
 
     if (!selectedFile) return;
 
-    imagePreview.style.display = "none";
+    imagePreview.src = URL.createObjectURL(selectedFile);
+    imagePreview.style.display = "block";
+
     videoPreview.style.display = "none";
-
-    const url = URL.createObjectURL(selectedFile);
-
-    if (selectedFile.type.startsWith("image")) {
-
-        imagePreview.src = url;
-        imagePreview.style.display = "block";
-
-    } else if (selectedFile.type.startsWith("video")) {
-
-        videoPreview.src = url;
-        videoPreview.style.display = "block";
-
-    }
+    videoPreview.src = "";
 
     uploadBtn.disabled = false;
 
 });
 
-// Subir archivo
+// Seleccionar video
+videoInput.addEventListener("change", () => {
+
+    selectedFile = videoInput.files[0];
+
+    if (!selectedFile) return;
+
+    videoPreview.src = URL.createObjectURL(selectedFile);
+    videoPreview.style.display = "block";
+
+    imagePreview.style.display = "none";
+    imagePreview.src = "";
+
+    uploadBtn.disabled = false;
+
+});
+
+// Subir
 uploadBtn.addEventListener("click", async () => {
 
     if (!selectedFile) return;
@@ -56,9 +70,10 @@ uploadBtn.addEventListener("click", async () => {
     formData.append("file", selectedFile);
     formData.append("upload_preset", "event_photos");
 
-    const resourceType = selectedFile.type.startsWith("video")
-        ? "video"
-        : "image";
+    const resourceType =
+        selectedFile.type.startsWith("video")
+            ? "video"
+            : "image";
 
     try {
 
@@ -74,9 +89,9 @@ uploadBtn.addEventListener("click", async () => {
 
         if (response.ok) {
 
-            console.log(data);
+            status.innerText = "🎉 ¡Gracias! Tu archivo fue enviado.";
 
-            status.innerText = "🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
+            console.log(data.secure_url);
 
             imagePreview.style.display = "none";
             videoPreview.style.display = "none";
@@ -84,23 +99,23 @@ uploadBtn.addEventListener("click", async () => {
             imagePreview.src = "";
             videoPreview.src = "";
 
-            cameraInput.value = "";
+            photoInput.value = "";
+            videoInput.value = "";
 
             selectedFile = null;
 
             setTimeout(() => {
 
-                status.innerText = "";
-
                 uploadBtn.disabled = true;
+                status.innerText = "";
 
             }, 3000);
 
         } else {
 
-            console.error(data);
+            console.log(data);
 
-            status.innerText = "❌ Error al subir el archivo.";
+            status.innerText = "❌ Error al subir.";
 
             uploadBtn.disabled = false;
 

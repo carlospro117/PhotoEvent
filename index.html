@@ -10,26 +10,41 @@
 
 <div class="container">
 
-    <h1>📸 Foto del Evento</h1>
-    <p>Toma una foto o graba un video y envíalo.</p>
+    <h1>📸 Evento</h1>
+    <p>Elige una opción</p>
 
+    <!-- FOTO -->
     <input
         type="file"
-        id="cameraInput"
-        accept="image/*,video/*"
-        capture
+        id="photoInput"
+        accept="image/*"
+        capture="environment"
         hidden>
 
-    <button id="takePhoto">
-        Tomar foto / Video
+    <!-- VIDEO -->
+    <input
+        type="file"
+        id="videoInput"
+        accept="video/*"
+        capture="environment"
+        hidden>
+
+    <button id="photoBtn">
+        📷 Tomar Foto
     </button>
 
-    <img id="imagePreview" style="display:none; width:100%; border-radius:15px; margin-top:20px;">
+    <button id="videoBtn">
+        🎥 Grabar Video
+    </button>
+
+    <img
+        id="imagePreview"
+        style="display:none;width:100%;margin-top:20px;border-radius:15px;">
 
     <video
         id="videoPreview"
         controls
-        style="display:none; width:100%; border-radius:15px; margin-top:20px;">
+        style="display:none;width:100%;margin-top:20px;border-radius:15px;">
     </video>
 
     <button id="uploadBtn" disabled>
