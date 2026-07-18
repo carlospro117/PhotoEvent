@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foto del Evento</title>
+    <title>Evento</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
 <div class="container">
 
     <h1>📸 Evento</h1>
-    <p>Elige una opción</p>
+    <p>Toma una foto o graba un video y envíalo.</p>
 
     <!-- FOTO -->
     <input
@@ -29,26 +29,24 @@
         capture="environment"
         hidden>
 
-    <button id="photoBtn">
-        📷 Tomar Foto
-    </button>
+    <div class="button-row">
 
-    <button id="videoBtn">
-        🎥 Grabar Video
-    </button>
+        <button id="photoBtn">
+            📷<br>Tomar Foto
+        </button>
 
-    <img
-        id="imagePreview"
-        style="display:none;width:100%;margin-top:20px;border-radius:15px;">
+        <button id="videoBtn">
+            🎥<br>Grabar Video
+        </button>
 
-    <video
-        id="videoPreview"
-        controls
-        style="display:none;width:100%;margin-top:20px;border-radius:15px;">
-    </video>
+    </div>
+
+    <img id="imagePreview">
+
+    <video id="videoPreview" controls></video>
 
     <button id="uploadBtn" disabled>
-        Enviar
+        📤 Enviar
     </button>
 
     <p id="status"></p>

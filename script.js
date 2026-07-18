@@ -12,122 +12,127 @@ const status = document.getElementById("status");
 
 let selectedFile = null;
 
-// Abrir cámara de fotos
+// FOTO
 photoBtn.addEventListener("click", () => {
     photoInput.click();
 });
 
-// Abrir cámara de video
+// VIDEO
 videoBtn.addEventListener("click", () => {
     videoInput.click();
 });
 
-// Seleccionar foto
+// FOTO
 photoInput.addEventListener("change", () => {
 
     selectedFile = photoInput.files[0];
 
-    if (!selectedFile) return;
+    if(!selectedFile) return;
 
     imagePreview.src = URL.createObjectURL(selectedFile);
-    imagePreview.style.display = "block";
 
-    videoPreview.style.display = "none";
-    videoPreview.src = "";
+    imagePreview.style.display="block";
 
-    uploadBtn.disabled = false;
+    videoPreview.style.display="none";
+    videoPreview.src="";
+
+    uploadBtn.innerText="📤 Enviar Foto";
+    uploadBtn.disabled=false;
 
 });
 
-// Seleccionar video
+// VIDEO
 videoInput.addEventListener("change", () => {
 
     selectedFile = videoInput.files[0];
 
-    if (!selectedFile) return;
+    if(!selectedFile) return;
 
     videoPreview.src = URL.createObjectURL(selectedFile);
-    videoPreview.style.display = "block";
 
-    imagePreview.style.display = "none";
-    imagePreview.src = "";
+    videoPreview.style.display="block";
 
-    uploadBtn.disabled = false;
+    imagePreview.style.display="none";
+    imagePreview.src="";
+
+    uploadBtn.innerText="📤 Enviar Video";
+    uploadBtn.disabled=false;
 
 });
 
-// Subir
-uploadBtn.addEventListener("click", async () => {
+// SUBIR
+uploadBtn.addEventListener("click", async()=>{
 
-    if (!selectedFile) return;
+    if(!selectedFile) return;
 
-    status.innerText = "📤 Enviando...";
+    status.innerText="📤 Enviando...";
 
-    uploadBtn.disabled = true;
+    uploadBtn.disabled=true;
 
-    const formData = new FormData();
+    const formData=new FormData();
 
-    formData.append("file", selectedFile);
-    formData.append("upload_preset", "event_photos");
+    formData.append("file",selectedFile);
+    formData.append("upload_preset","event_photos");
 
     const resourceType =
         selectedFile.type.startsWith("video")
-            ? "video"
-            : "image";
+        ? "video"
+        : "image";
 
-    try {
+    try{
 
         const response = await fetch(
             `https://api.cloudinary.com/v1_1/surehwg9/${resourceType}/upload`,
             {
-                method: "POST",
-                body: formData
+                method:"POST",
+                body:formData
             }
         );
 
         const data = await response.json();
 
-        if (response.ok) {
-
-            status.innerText = "🎉 ¡Gracias! Tu archivo fue enviado.";
+        if(response.ok){
 
             console.log(data.secure_url);
 
-            imagePreview.style.display = "none";
-            videoPreview.style.display = "none";
+            status.innerText="🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
 
-            imagePreview.src = "";
-            videoPreview.src = "";
+            imagePreview.style.display="none";
+            videoPreview.style.display="none";
 
-            photoInput.value = "";
-            videoInput.value = "";
+            imagePreview.src="";
+            videoPreview.src="";
 
-            selectedFile = null;
+            photoInput.value="";
+            videoInput.value="";
 
-            setTimeout(() => {
+            selectedFile=null;
 
-                uploadBtn.disabled = true;
-                status.innerText = "";
+            setTimeout(()=>{
 
-            }, 3000);
+                uploadBtn.disabled=true;
+                uploadBtn.innerText="📤 Enviar";
+                status.innerText="";
 
-        } else {
+            },3000);
+
+        }else{
 
             console.log(data);
 
-            status.innerText = "❌ Error al subir.";
+            status.innerText="❌ Error al subir el archivo.";
 
-            uploadBtn.disabled = false;
+            uploadBtn.disabled=false;
 
         }
 
-    } catch (error) {
+    }catch(error){
 
         console.error(error);
 
-        status.innerText = "❌ Error de conexión.";
+        status.innerText="❌ Error de conexión.";
 
-        uploadBtn.disabled = false;
+        uploadBtn.disabled=false;
 
     }
 
