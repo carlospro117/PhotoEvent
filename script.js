@@ -1,6 +1,9 @@
 const takePhotoBtn = document.getElementById("takePhoto");
 const cameraInput = document.getElementById("cameraInput");
-const preview = document.getElementById("preview");
+
+const imagePreview = document.getElementById("imagePreview");
+const videoPreview = document.getElementById("videoPreview");
+
 const uploadBtn = document.getElementById("uploadBtn");
 const status = document.getElementById("status");
 
@@ -13,21 +16,39 @@ takePhotoBtn.addEventListener("click", () => {
 
 // Mostrar vista previa
 cameraInput.addEventListener("change", () => {
+
     selectedFile = cameraInput.files[0];
 
     if (!selectedFile) return;
 
-    preview.src = URL.createObjectURL(selectedFile);
-    preview.style.display = "block";
+    imagePreview.style.display = "none";
+    videoPreview.style.display = "none";
+
+    const url = URL.createObjectURL(selectedFile);
+
+    if (selectedFile.type.startsWith("image")) {
+
+        imagePreview.src = url;
+        imagePreview.style.display = "block";
+
+    } else if (selectedFile.type.startsWith("video")) {
+
+        videoPreview.src = url;
+        videoPreview.style.display = "block";
+
+    }
+
     uploadBtn.disabled = false;
+
 });
 
-// Subir foto a Cloudinary
+// Subir archivo
 uploadBtn.addEventListener("click", async () => {
 
     if (!selectedFile) return;
 
-    status.innerText = "⏳ Subiendo foto...";
+    status.innerText = "📤 Enviando...";
+
     uploadBtn.disabled = true;
 
     const formData = new FormData();
@@ -35,10 +56,14 @@ uploadBtn.addEventListener("click", async () => {
     formData.append("file", selectedFile);
     formData.append("upload_preset", "event_photos");
 
+    const resourceType = selectedFile.type.startsWith("video")
+        ? "video"
+        : "image";
+
     try {
 
         const response = await fetch(
-            "https://api.cloudinary.com/v1_1/surehwg9/image/upload",
+            `https://api.cloudinary.com/v1_1/surehwg9/${resourceType}/upload`,
             {
                 method: "POST",
                 body: formData
@@ -49,19 +74,33 @@ uploadBtn.addEventListener("click", async () => {
 
         if (response.ok) {
 
-            status.innerText = "✅ ¡Foto enviada correctamente!";
+            console.log(data);
 
-            console.log(data.secure_url);
+            status.innerText = "🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
 
-            preview.style.display = "none";
+            imagePreview.style.display = "none";
+            videoPreview.style.display = "none";
+
+            imagePreview.src = "";
+            videoPreview.src = "";
+
             cameraInput.value = "";
+
             selectedFile = null;
-            uploadBtn.disabled = true;
+
+            setTimeout(() => {
+
+                status.innerText = "";
+
+                uploadBtn.disabled = true;
+
+            }, 3000);
 
         } else {
 
-            status.innerText = "❌ Error al subir la foto.";
-            console.log(data);
+            console.error(data);
+
+            status.innerText = "❌ Error al subir el archivo.";
 
             uploadBtn.disabled = false;
 
@@ -70,7 +109,9 @@ uploadBtn.addEventListener("click", async () => {
     } catch (error) {
 
         console.error(error);
+
         status.innerText = "❌ Error de conexión.";
+
         uploadBtn.disabled = false;
 
     }
