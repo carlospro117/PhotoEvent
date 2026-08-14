@@ -223,8 +223,7 @@
       });
     }
 
-    // 3. COMPRESIÓN DE VIDEO (FFmpeg, solo si pesa más de 25MB)
-// 3. COMPRESIÓN DE VIDEO (FFmpeg, solo si pesa más de 25MB)
+    // 3. COMPRESIÓN DE VIDEO (FFmpeg, con corrección de CORS para Vercel)
     async function compressVideoIfNeeded(file) {
       if (file.size <= 25 * 1024 * 1024) return file; 
 
@@ -233,7 +232,7 @@
 
       if (!ffmpeg) {
         const { FFmpeg } = window.FFmpegWASM;
-        const { toBlobURL } = window.FFmpegUtil; // Agregamos la utilidad
+        const { toBlobURL } = window.FFmpegUtil; 
         ffmpeg = new FFmpeg();
         
         // Descargamos los scripts como "Blobs" locales para evitar el bloqueo de Vercel/Navegador
