@@ -8,6 +8,10 @@
   <!-- CDN de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- CDNs para la compresión de video con FFmpeg.wasm -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+
   <style>
     :root {
       --primary: #3ecf8e;
@@ -93,7 +97,6 @@
       word-break: break-all;
     }
 
-    /* Estilos de la Galería */
     .gallery-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -122,7 +125,6 @@
   <div class="container">
     <h1>📷 Captura & Subida</h1>
     
-    <!-- Input oculto que abre la cámara directamente en celulares -->
     <input type="file" id="mediaInput" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleFileSelect()" />
 
     <div class="upload-area" onclick="document.getElementById('mediaInput').click()">
@@ -137,7 +139,6 @@
     <div id="status-msg"></div>
   </div>
 
-  <!-- Sección de archivos subidos -->
   <div class="container">
     <h2>📁 Archivos Subidos</h2>
     <div id="gallery" class="gallery-grid">
@@ -146,19 +147,46 @@
   </div>
 
   <script>
-    // ==========================================
-    // ⚙️ CONFIGURA TUS CREDENCIALES AQUÍ
-    // ==========================================
+    // ⚙️ CONFIGURACIÓN DE TU PROYECTO
     const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
     const BUCKET_NAME = 'PhotoEvent';
 
-    // Inicializar cliente de Supabase
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let selectedFile = null;
 
-    // Manejar selección o captura de archivo
+    // Configuración del motor de compresión FFmpeg
+    const { FFmpeg } = FFmpegWASM;
+    const ffmpeg = new FFmpeg();
+    let ffmpegLoaded = false;
+
+    async function loadFFmpeg() {
+      if (ffmpegLoaded) return;
+      const statusMsg = document.getElementById('status-msg');
+      statusMsg.textContent = '⏳ Cargando motor de compresión de video...';
+      await ffmpeg.load({
+        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+      });
+      ffmpegLoaded = true;
+    }
+
+    async function compressVideo(file) {
+      const statusMsg = document.getElementById('status-msg');
+      statusMsg.textContent = '⚙️ Comprimiendo video pesado... Esto puede tomar un par de minutos según tu dispositivo.';
+      
+      await loadFFmpeg();
+
+      const { fetchFile } = FFmpegUtil;
+      await ffmpeg.writeFile(file.name, await fetchFile(file));
+
+      // Reduce resolución a 720p y optimiza el tamaño con H.264
+      await ffmpeg.exec(['-i', file.name, '-vf', 'scale=-2:720', '-c:v', 'libx264', '-crf', '28', 'output.mp4']);
+      
+      const data = await ffmpeg.readFile('output.mp4');
+      return new File([data.buffer], `compressed_${file.name}.mp4`, { type: 'video/mp4' });
+    }
+
     function handleFileSelect() {
       const input = document.getElementById('mediaInput');
       const previewContainer = document.getElementById('preview-container');
@@ -171,16 +199,6 @@
       if (input.files && input.files[0]) {
         selectedFile = input.files[0];
 
-        // Validación de tamaño (Máximo 50 MB)
-        const MAX_SIZE = 50 * 1024 * 1024;
-        if (selectedFile.size > MAX_SIZE) {
-          statusMsg.style.color = 'var(--danger)';
-          statusMsg.textContent = '❌ El archivo excede el tamaño máximo permitido (50 MB).';
-          uploadBtn.style.display = 'none';
-          return;
-        }
-
-        // Crear vista previa
         const fileURL = URL.createObjectURL(selectedFile);
         if (selectedFile.type.startsWith('image/')) {
           const img = document.createElement('img');
@@ -197,7 +215,6 @@
       }
     }
 
-    // Subir archivo a Supabase Storage
     async function uploadFile() {
       if (!selectedFile) return;
 
@@ -205,16 +222,30 @@
       const statusMsg = document.getElementById('status-msg');
 
       uploadBtn.disabled = true;
-      statusMsg.style.color = 'var(--text-secondary)';
-      statusMsg.textContent = '⏳ Subiendo archivo... por favor espera.';
+      let fileToUpload = selectedFile;
 
-      // Generar nombre único usando timestamp + string aleatorio
-      const fileExt = selectedFile.name.split('.').pop();
+      // Si el video supera los 45 MB, lo comprimimos antes de enviar
+      if (selectedFile.type.startsWith('video/') && selectedFile.size > 45 * 1024 * 1024) {
+        try {
+          fileToUpload = await compressVideo(selectedFile);
+        } catch (error) {
+          console.error(error);
+          statusMsg.style.color = 'var(--danger)';
+          statusMsg.textContent = '❌ Error al comprimir el video: ' + error.message;
+          uploadBtn.disabled = false;
+          return;
+        }
+      }
+
+      statusMsg.style.color = 'var(--text-secondary)';
+      statusMsg.textContent = '⏳ Subiendo archivo a la nube... por favor espera.';
+
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
       const { data, error } = await supabaseClient.storage
         .from(BUCKET_NAME)
-        .upload(fileName, selectedFile);
+        .upload(fileName, fileToUpload);
 
       if (error) {
         console.error(error);
@@ -225,7 +256,6 @@
         statusMsg.style.color = 'var(--primary)';
         statusMsg.textContent = '✅ ¡Archivo subido con éxito!';
         
-        // Limpiar formulario y refrescar galería
         document.getElementById('mediaInput').value = '';
         document.getElementById('preview-container').innerHTML = '';
         uploadBtn.style.display = 'none';
@@ -236,7 +266,6 @@
       }
     }
 
-    // Cargar y mostrar los archivos subidos al bucket
     async function loadGallery() {
       const gallery = document.getElementById('gallery');
       
@@ -252,7 +281,6 @@
       gallery.innerHTML = '';
 
       data.forEach(item => {
-        // Ignorar carpetas o archivos ocultos de sistema
         if (item.name === '.emptyFolderPlaceholder') return;
 
         const { data: publicUrlData } = supabaseClient.storage
@@ -263,7 +291,6 @@
         const div = document.createElement('div');
         div.className = 'gallery-item';
 
-        // Detectar tipo por extensión de archivo
         const isVideo = item.name.match(/\.(mp4|webm|ogg|mov)$/i);
 
         if (isVideo) {
@@ -276,7 +303,6 @@
       });
     }
 
-    // Cargar la galería automáticamente al abrir la página
     window.addEventListener('DOMContentLoaded', loadGallery);
   </script>
 </body>
