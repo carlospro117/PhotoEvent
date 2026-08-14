@@ -1,12 +1,6 @@
 const photoInput = document.getElementById("photoInput");
-const videoInput = document.getElementById("videoInput");
-
 const photoBtn = document.getElementById("photoBtn");
-const videoBtn = document.getElementById("videoBtn");
-
 const imagePreview = document.getElementById("imagePreview");
-const videoPreview = document.getElementById("videoPreview");
-
 const uploadBtn = document.getElementById("uploadBtn");
 const status = document.getElementById("status");
 
@@ -15,11 +9,6 @@ let selectedFile = null;
 // FOTO
 photoBtn.addEventListener("click", () => {
     photoInput.click();
-});
-
-// VIDEO
-videoBtn.addEventListener("click", () => {
-    videoInput.click();
 });
 
 // FOTO
@@ -33,29 +22,7 @@ photoInput.addEventListener("change", () => {
 
     imagePreview.style.display="block";
 
-    videoPreview.style.display="none";
-    videoPreview.src="";
-
     uploadBtn.innerText="📤 Enviar Foto";
-    uploadBtn.disabled=false;
-
-});
-
-// VIDEO
-videoInput.addEventListener("change", () => {
-
-    selectedFile = videoInput.files[0];
-
-    if(!selectedFile) return;
-
-    videoPreview.src = URL.createObjectURL(selectedFile);
-
-    videoPreview.style.display="block";
-
-    imagePreview.style.display="none";
-    imagePreview.src="";
-
-    uploadBtn.innerText="📤 Enviar Video";
     uploadBtn.disabled=false;
 
 });
@@ -74,10 +41,8 @@ uploadBtn.addEventListener("click", async()=>{
     formData.append("file",selectedFile);
     formData.append("upload_preset","event_photos");
 
-    const resourceType =
-        selectedFile.type.startsWith("video")
-        ? "video"
-        : "image";
+    // Como ahora solo se envían fotos, podemos dejar fijo el tipo de recurso como "image"
+    const resourceType = "image"; 
 
     try{
 
@@ -98,14 +63,8 @@ uploadBtn.addEventListener("click", async()=>{
             status.innerText="🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
 
             imagePreview.style.display="none";
-            videoPreview.style.display="none";
-
             imagePreview.src="";
-            videoPreview.src="";
-
             photoInput.value="";
-            videoInput.value="";
-
             selectedFile=null;
 
             setTimeout(()=>{
@@ -119,9 +78,7 @@ uploadBtn.addEventListener("click", async()=>{
         }else{
 
             console.log(data);
-
             status.innerText="❌ Error al subir el archivo.";
-
             uploadBtn.disabled=false;
 
         }
@@ -129,9 +86,7 @@ uploadBtn.addEventListener("click", async()=>{
     }catch(error){
 
         console.error(error);
-
         status.innerText="❌ Error de conexión.";
-
         uploadBtn.disabled=false;
 
     }

@@ -10,7 +10,7 @@
 
 <div class="container">
 
-    <h1>Toma una foto o graba un video y envíalo</h1>
+    <h1>Toma una foto y envíala</h1>
     
     <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
 
@@ -22,29 +22,13 @@
         capture="environment"
         hidden>
 
-    <!-- VIDEO -->
-    <input
-        type="file"
-        id="videoInput"
-        accept="video/*"
-        capture="environment"
-        hidden>
-
     <div class="button-row">
-
         <button id="photoBtn">
             📷<br>Tomar Foto
         </button>
-
-        <button id="videoBtn">
-            🎥<br>Grabar Video
-        </button>
-
     </div>
 
     <img id="imagePreview">
-
-    <video id="videoPreview" controls></video>
 
     <button id="uploadBtn" disabled>
         📤 Enviar
