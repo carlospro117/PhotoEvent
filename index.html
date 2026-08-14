@@ -224,6 +224,7 @@
     }
 
     // 3. COMPRESIÓN DE VIDEO (FFmpeg, solo si pesa más de 25MB)
+// 3. COMPRESIÓN DE VIDEO (FFmpeg, solo si pesa más de 25MB)
     async function compressVideoIfNeeded(file) {
       if (file.size <= 25 * 1024 * 1024) return file; 
 
@@ -232,13 +233,23 @@
 
       if (!ffmpeg) {
         const { FFmpeg } = window.FFmpegWASM;
+        const { toBlobURL } = window.FFmpegUtil; // Agregamos la utilidad
         ffmpeg = new FFmpeg();
+        
+        // Descargamos los scripts como "Blobs" locales para evitar el bloqueo de Vercel/Navegador
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        const ffmpegURL = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd';
+
+        statusMsg.textContent = '⚙️ Preparando motor de compresión (solo la primera vez)...';
+
         await ffmpeg.load({
-          coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-          wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+          classWorkerURL: await toBlobURL(`${ffmpegURL}/814.ffmpeg.js`, 'text/javascript')
         });
       }
 
+      statusMsg.textContent = '⚙️ Comprimiendo video pesado... Por favor, no cierres la página.';
       const { fetchFile } = window.FFmpegUtil;
       await ffmpeg.writeFile(file.name, await fetchFile(file));
       
