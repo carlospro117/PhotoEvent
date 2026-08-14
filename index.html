@@ -146,7 +146,7 @@
     </div>
   </div>
 
-  <script>
+<script>
     // ⚙️ CONFIGURACIÓN DE TU PROYECTO SUPABASE
     const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
@@ -156,9 +156,9 @@
 
     let selectedFile = null;
 
-    // 1. Declarar variables globales de FFmpeg al inicio
-    var ffmpegInstance = null;
-    var isFFmpegLoaded = false;
+    // 1. Declarar variables globales
+    let ffmpegInstance = null;
+    let isFFmpegLoaded = false;
 
     async function loadFFmpeg() {
       if (isFFmpegLoaded) return;
@@ -166,8 +166,14 @@
       const statusMsg = document.getElementById('status-msg');
       statusMsg.textContent = '⏳ Cargando motor de compresión...';
 
-      const { FFmpeg } = FFmpegWASM;
+      // CORRECCIÓN AQUÍ: Accedemos directamente a window.FFmpeg
+      const { FFmpeg } = window.FFmpeg; 
       ffmpegInstance = new FFmpeg();
+
+      // Escuchamos el log para depurar si falla
+      ffmpegInstance.on('log', ({ message }) => {
+        console.log(message);
+      });
 
       await ffmpegInstance.load({
         coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
@@ -175,6 +181,7 @@
       });
 
       isFFmpegLoaded = true;
+      statusMsg.textContent = '✅ Motor cargado.';
     }
 
     async function compressVideo(file) {
@@ -183,7 +190,9 @@
       
       await loadFFmpeg();
 
-      const { fetchFile } = FFmpegUtil;
+      // CORRECCIÓN AQUÍ: Accedemos a window.FFmpegUtil
+      const { fetchFile } = window.FFmpegUtil;
+      
       await ffmpegInstance.writeFile(file.name, await fetchFile(file));
 
       // Comprimir video a resolución 720p optimizada
