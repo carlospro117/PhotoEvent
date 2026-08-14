@@ -10,8 +10,11 @@ let selectedFile = null;
 // FUNCIÓN PARA CARGAR TODAS LAS FOTOS DE LA NUBE
 async function loadGallery() {
     try {
-        // Pedimos a Cloudinary la lista de fotos con el tag 'boda'
-        const response = await fetch('https://res.cloudinary.com/surehwg9/image/list/boda.json');
+        // Agregamos "?t=" y la hora actual para evitar la caché de Cloudinary y siempre pedir los datos en tiempo real
+        const timestamp = new Date().getTime();
+        const response = await fetch(`https://res.cloudinary.com/surehwg9/image/list/boda.json?t=${timestamp}`, {
+            cache: "no-store"
+        });
         
         if (response.ok) {
             const data = await response.json();
@@ -59,8 +62,6 @@ uploadBtn.addEventListener("click", async () => {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("upload_preset", "event_photos");
-    
-    // AGREGAMOS EL TAG AQUÍ PARA AGRUPAR TODAS LAS FOTOS DE LA BODA
     formData.append("tags", "boda"); 
 
     const resourceType = "image"; 
@@ -77,10 +78,8 @@ uploadBtn.addEventListener("click", async () => {
         const data = await response.json();
 
         if(response.ok) {
-            // Mostrar la foto recién subida inmediatamente al principio de la lista
-            const imgThumbnail = document.createElement("img");
-            imgThumbnail.src = data.secure_url;
-            recentPhotos.insertBefore(imgThumbnail, recentPhotos.firstChild);
+            // En lugar de solo agregar la foto localmente, volvemos a descargar la lista fresca
+            loadGallery();
 
             status.innerText = "🎉 ¡Gracias! Tu foto fue enviada.";
 
