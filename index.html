@@ -1,357 +1,60 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Captura y Subida de Archivos</title>
-  
-  <!-- CDN de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- CDN de FFmpeg para compresión de video -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-
-  <style>
-    :root {
-      --primary: #3ecf8e;
-      --primary-hover: #34b27b;
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --text-color: #ffffff;
-      --text-secondary: #a0a0a0;
-      --danger: #ff5252;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 600px;
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      margin-bottom: 30px;
-    }
-
-    h1, h2 { text-align: center; margin-bottom: 20px; font-weight: 600; }
-    h2 { font-size: 1.2rem; color: var(--text-secondary); border-bottom: 1px solid #333; padding-bottom: 10px; }
-
-    .upload-area {
-      border: 2px dashed #444;
-      border-radius: 8px;
-      padding: 30px 10px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-
-    .upload-area:hover { border-color: var(--primary); }
-
-    .btn {
-      width: 100%;
-      background-color: var(--primary);
-      color: #000;
-      font-weight: bold;
-      border: none;
-      padding: 14px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: background 0.2s;
-    }
-
-    .btn:hover { background-color: var(--primary-hover); }
-    .btn:disabled { background-color: #555; color: #888; cursor: not-allowed; }
-
-    #preview-container {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
-    }
-
-    #preview-container img, #preview-container video {
-      max-width: 100%;
-      max-height: 350px;
-      border-radius: 8px;
-      border: 1px solid #333;
-    }
-
-    #status-msg {
-      margin-top: 15px;
-      text-align: center;
-      font-size: 0.95rem;
-      word-break: break-all;
-    }
-
-    .gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 12px;
-      width: 100%;
-      margin-top: 15px;
-    }
-
-    .gallery-item {
-      aspect-ratio: 1;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #000;
-      position: relative;
-    }
-
-    .gallery-item img, .gallery-item video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evento</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="container">
-    <h1>📷 Captura & Subida</h1>
-    
-    <input type="file" id="mediaInput" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleFileSelect()" />
+<div class="container">
 
-    <div class="upload-area" onclick="document.getElementById('mediaInput').click()">
-      <p style="font-size: 2rem;">📸 / 🎥</p>
-      <p style="margin-top: 10px; color: var(--text-secondary);">Toca aquí para tomar foto, grabar video o seleccionar archivo</p>
+    <h1>Toma una foto o graba un video y envíalo</h1>
+    
+    <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
+
+    <!-- FOTO -->
+    <input
+        type="file"
+        id="photoInput"
+        accept="image/*"
+        capture="environment"
+        hidden>
+
+    <!-- VIDEO -->
+    <input
+        type="file"
+        id="videoInput"
+        accept="video/*"
+        capture="environment"
+        hidden>
+
+    <div class="button-row">
+
+        <button id="photoBtn">
+            📷<br>Tomar Foto
+        </button>
+
+        <button id="videoBtn">
+            🎥<br>Grabar Video
+        </button>
+
     </div>
 
-    <!-- AQUÍ ESTÁ EL CONTENEDOR DE LA PREVISUALIZACIÓN -->
-    <div id="preview-container"></div>
+    <img id="imagePreview">
 
-    <button id="uploadBtn" class="btn" style="display: none;" onclick="uploadFile()">Subir a la nube</button>
-    
-    <div id="status-msg"></div>
-  </div>
+    <video id="videoPreview" controls></video>
 
-  <div class="container">
-    <h2>📁 Archivos Subidos</h2>
-    <!-- AQUÍ ESTÁ LA GALERÍA -->
-    <div id="gallery" class="gallery-grid">
-      <p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Cargando archivos...</p>
-    </div>
-  </div>
+    <button id="uploadBtn" disabled>
+        📤 Enviar
+    </button>
 
-  <script>
-    // ⚙️ CONFIGURACIÓN SUPABASE
-    const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
-    const BUCKET_NAME = 'PhotoEvent';
+    <p id="status"></p>
 
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</div>
 
-    let selectedFile = null;
-    let ffmpeg = null;
+<script src="script.js"></script>
 
-    // 1. MANEJAR LA SELECCIÓN Y MOSTRAR LA PREVISUALIZACIÓN
-    function handleFileSelect() {
-      const input = document.getElementById('mediaInput');
-      const previewContainer = document.getElementById('preview-container');
-      const uploadBtn = document.getElementById('uploadBtn');
-      const statusMsg = document.getElementById('status-msg');
-
-      statusMsg.textContent = '';
-      previewContainer.innerHTML = '';
-
-      if (input.files && input.files[0]) {
-        selectedFile = input.files[0];
-        const fileURL = URL.createObjectURL(selectedFile);
-
-        if (selectedFile.type.startsWith('image/')) {
-          const img = document.createElement('img');
-          img.src = fileURL;
-          previewContainer.appendChild(img);
-        } else if (selectedFile.type.startsWith('video/')) {
-          const video = document.createElement('video');
-          video.src = fileURL;
-          video.controls = true;
-          previewContainer.appendChild(video);
-        }
-
-        uploadBtn.style.display = 'block';
-      }
-    }
-
-    // 2. COMPRESIÓN DE IMÁGENES (Súper rápida, sin colgar la app)
-    async function compressImageIfNeeded(file) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDimension = 1920; 
-
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob((blob) => {
-            if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-            else resolve(file);
-          }, 'image/jpeg', 0.85);
-        };
-        img.onerror = () => resolve(file);
-      });
-    }
-
-    // 3. COMPRESIÓN DE VIDEO (FFmpeg, con corrección de CORS para Vercel)
-    async function compressVideoIfNeeded(file) {
-      if (file.size <= 25 * 1024 * 1024) return file; 
-
-      const statusMsg = document.getElementById('status-msg');
-      statusMsg.textContent = '⚙️ Comprimiendo video pesado... Por favor, no cierres la página.';
-
-      if (!ffmpeg) {
-        const { FFmpeg } = window.FFmpegWASM;
-        const { toBlobURL } = window.FFmpegUtil; 
-        ffmpeg = new FFmpeg();
-        
-        // Descargamos los scripts como "Blobs" locales para evitar el bloqueo de Vercel/Navegador
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-        const ffmpegURL = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd';
-
-        statusMsg.textContent = '⚙️ Preparando motor de compresión (solo la primera vez)...';
-
-        await ffmpeg.load({
-          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-          classWorkerURL: await toBlobURL(`${ffmpegURL}/814.ffmpeg.js`, 'text/javascript')
-        });
-      }
-
-      statusMsg.textContent = '⚙️ Comprimiendo video pesado... Por favor, no cierres la página.';
-      const { fetchFile } = window.FFmpegUtil;
-      await ffmpeg.writeFile(file.name, await fetchFile(file));
-      
-      // CRF 32 reduce el tamaño significativamente manteniendo calidad aceptable
-      await ffmpeg.exec(['-i', file.name, '-vf', 'scale=-2:720', '-c:v', 'libx264', '-crf', '32', 'output.mp4']);
-      
-      const data = await ffmpeg.readFile('output.mp4');
-      return new File([data.buffer], `compressed_${file.name}`, { type: 'video/mp4' });
-    }
-
-    // 4. LÓGICA PRINCIPAL DE SUBIDA
-    async function uploadFile() {
-      if (!selectedFile) return;
-
-      const uploadBtn = document.getElementById('uploadBtn');
-      const statusMsg = document.getElementById('status-msg');
-
-      uploadBtn.disabled = true;
-      statusMsg.style.color = 'var(--text-secondary)';
-
-      try {
-        let fileToUpload = selectedFile;
-
-        // Decidir cómo comprimir según el tipo de archivo
-        if (selectedFile.type.startsWith('image/')) {
-          statusMsg.textContent = '⚙️ Optimizando imagen...';
-          fileToUpload = await compressImageIfNeeded(selectedFile);
-        } else if (selectedFile.type.startsWith('video/')) {
-          fileToUpload = await compressVideoIfNeeded(selectedFile);
-        }
-
-        statusMsg.textContent = '⏳ Subiendo archivo a la nube...';
-
-        const fileExt = fileToUpload.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-
-        const { error } = await supabaseClient.storage
-          .from(BUCKET_NAME)
-          .upload(fileName, fileToUpload, { cacheControl: '3600', upsert: false });
-
-        if (error) throw error;
-
-        statusMsg.style.color = 'var(--primary)';
-        statusMsg.textContent = '✅ ¡Archivo subido con éxito!';
-        
-        // Limpiar el formulario
-        document.getElementById('mediaInput').value = '';
-        document.getElementById('preview-container').innerHTML = '';
-        uploadBtn.style.display = 'none';
-        selectedFile = null;
-
-        // Recargar la galería
-        loadGallery();
-
-      } catch (error) {
-        console.error(error);
-        statusMsg.style.color = 'var(--danger)';
-        statusMsg.textContent = '❌ Error al subir: ' + error.message;
-      } finally {
-        uploadBtn.disabled = false;
-      }
-    }
-
-    // 5. CARGAR LA GALERÍA DE ARCHIVOS SUBIDOS
-    async function loadGallery() {
-      const gallery = document.getElementById('gallery');
-      
-      const { data, error } = await supabaseClient.storage
-        .from(BUCKET_NAME)
-        .list('', { limit: 30, sortBy: { column: 'created_at', order: 'desc' } });
-
-      if (error || !data || data.length === 0) {
-        gallery.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">No hay archivos subidos aún.</p>';
-        return;
-      }
-
-      gallery.innerHTML = '';
-
-      data.forEach(item => {
-        if (item.name === '.emptyFolderPlaceholder') return;
-
-        const { data: publicUrlData } = supabaseClient.storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(item.name);
-
-        const fileUrl = publicUrlData.publicUrl;
-        const div = document.createElement('div');
-        div.className = 'gallery-item';
-
-        const isVideo = item.name.match(/\.(mp4|webm|ogg|mov)$/i);
-
-        if (isVideo) {
-          div.innerHTML = `<video src="${fileUrl}" controls></video>`;
-        } else {
-          div.innerHTML = `<a href="${fileUrl}" target="_blank"><img src="${fileUrl}" alt="Archivo subido" /></a>`;
-        }
-
-        gallery.appendChild(div);
-      });
-    }
-
-    // Cargar la galería al iniciar
-    window.addEventListener('DOMContentLoaded', loadGallery);
-  </script>
 </body>
 </html>
