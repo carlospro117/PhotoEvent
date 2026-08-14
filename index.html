@@ -146,7 +146,7 @@
     </div>
   </div>
 
-<script>
+  <script>
     // ⚙️ CONFIGURACIÓN DE TU PROYECTO SUPABASE
     const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
@@ -156,9 +156,24 @@
 
     let selectedFile = null;
 
-    // 1. Declarar variables globales
     let ffmpegInstance = null;
     let isFFmpegLoaded = false;
+
+    // Función para obtener la clase FFmpeg sin importar cómo la exportó el script UMD
+    function getFFmpegClass() {
+      if (window.FFmpegWASM && window.FFmpegWASM.FFmpeg) return window.FFmpegWASM.FFmpeg;
+      if (window.FFmpeg && window.FFmpeg.FFmpeg) return window.FFmpeg.FFmpeg;
+      if (typeof window.FFmpeg === 'function') return window.FFmpeg;
+      throw new Error('No se pudo encontrar la librería FFmpeg en window. Revisa que ffmpeg.js cargó correctamente.');
+    }
+
+    // Función para obtener fetchFile de los utilitarios
+    function getFetchFile() {
+      if (window.FFmpegUtil && window.FFmpegUtil.fetchFile) return window.FFmpegUtil.fetchFile;
+      if (window.FFmpegWASM && window.FFmpegWASM.fetchFile) return window.FFmpegWASM.fetchFile;
+      if (typeof window.fetchFile === 'function') return window.fetchFile;
+      throw new Error('No se pudo encontrar fetchFile en window. Revisa que util.js cargó correctamente.');
+    }
 
     async function loadFFmpeg() {
       if (isFFmpegLoaded) return;
@@ -166,11 +181,9 @@
       const statusMsg = document.getElementById('status-msg');
       statusMsg.textContent = '⏳ Cargando motor de compresión...';
 
-      // CORRECCIÓN AQUÍ: Accedemos directamente a window.FFmpeg
-      const { FFmpeg } = window.FFmpeg; 
-      ffmpegInstance = new FFmpeg();
+      const FFmpegClass = getFFmpegClass();
+      ffmpegInstance = new FFmpegClass();
 
-      // Escuchamos el log para depurar si falla
       ffmpegInstance.on('log', ({ message }) => {
         console.log(message);
       });
@@ -181,7 +194,6 @@
       });
 
       isFFmpegLoaded = true;
-      statusMsg.textContent = '✅ Motor cargado.';
     }
 
     async function compressVideo(file) {
@@ -190,8 +202,7 @@
       
       await loadFFmpeg();
 
-      // CORRECCIÓN AQUÍ: Accedemos a window.FFmpegUtil
-      const { fetchFile } = window.FFmpegUtil;
+      const fetchFile = getFetchFile();
       
       await ffmpegInstance.writeFile(file.name, await fetchFile(file));
 
