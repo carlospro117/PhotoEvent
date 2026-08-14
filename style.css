@@ -76,12 +76,12 @@ button:disabled{
     font-weight:bold;
 }
 
-/* --- ESTILOS NUEVOS PARA FOTOS RECIENTES --- */
+/* --- ESTILOS PARA LA GALERÍA DE FOTOS --- */
 
 .recent-section {
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #374151; /* Línea divisoria */
+    border-top: 1px solid #374151; 
     text-align: left;
 }
 
@@ -94,20 +94,19 @@ button:disabled{
 .recent-photos {
     display: flex;
     gap: 10px;
-    overflow-x: auto; /* Permite deslizar si hay muchas fotos */
+    overflow-x: auto; 
     padding-bottom: 10px;
 }
 
 .recent-photos img {
     width: 80px;
     height: 80px;
-    object-fit: cover; /* Para que las fotos queden cuadradas sin deformarse */
+    object-fit: cover; 
     border-radius: 8px;
     border: 2px solid #374151;
     flex-shrink: 0;
 }
 
-/* Personalización de la barra de desplazamiento */
 .recent-photos::-webkit-scrollbar {
     height: 6px;
 }

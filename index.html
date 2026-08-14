@@ -1,93 +1,52 @@
-const photoInput = document.getElementById("photoInput");
-const photoBtn = document.getElementById("photoBtn");
-const imagePreview = document.getElementById("imagePreview");
-const uploadBtn = document.getElementById("uploadBtn");
-const status = document.getElementById("status");
-const recentPhotos = document.getElementById("recentPhotos"); // Nuevo elemento
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evento</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-let selectedFile = null;
+<div class="container">
 
-// FOTO
-photoBtn.addEventListener("click", () => {
-    photoInput.click();
-});
+    <h1>Toma una foto y envíala</h1>
+    
+    <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
 
-// FOTO
-photoInput.addEventListener("change", () => {
+    <!-- FOTO -->
+    <input
+        type="file"
+        id="photoInput"
+        accept="image/*"
+        capture="environment"
+        hidden>
 
-    selectedFile = photoInput.files[0];
+    <div class="button-row">
+        <button id="photoBtn">
+            📷<br>Tomar Foto
+        </button>
+    </div>
 
-    if(!selectedFile) return;
+    <img id="imagePreview">
 
-    imagePreview.src = URL.createObjectURL(selectedFile);
+    <button id="uploadBtn" disabled>
+        📤 Enviar
+    </button>
 
-    imagePreview.style.display="block";
+    <p id="status"></p>
 
-    uploadBtn.innerText="📤 Enviar Foto";
-    uploadBtn.disabled=false;
+    <!-- SECCIÓN DE FOTOS DE INVITADOS -->
+    <div class="recent-section">
+        <h3>Fotos de los invitados</h3>
+        <div id="recentPhotos" class="recent-photos">
+            <!-- Las fotos aparecerán aquí automáticamente -->
+        </div>
+    </div>
 
-});
+</div>
 
-// SUBIR
-uploadBtn.addEventListener("click", async()=>{
+<script src="script.js"></script>
 
-    if(!selectedFile) return;
-
-    status.innerText="📤 Enviando...";
-
-    uploadBtn.disabled=true;
-
-    const formData=new FormData();
-
-    formData.append("file",selectedFile);
-    formData.append("upload_preset","event_photos");
-
-    const resourceType = "image"; 
-
-    try{
-
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/surehwg9/${resourceType}/upload`,
-            {
-                method:"POST",
-                body:formData
-            }
-        );
-
-        const data = await response.json();
-
-        if(response.ok){
-
-            // Crear miniatura y agregarla a la galería de recientes
-            const imgThumbnail = document.createElement("img");
-            imgThumbnail.src = data.secure_url;
-            
-            // Insertar la nueva foto al principio de la lista
-            recentPhotos.insertBefore(imgThumbnail, recentPhotos.firstChild);
-
-            status.innerText="🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
-
-            imagePreview.style.display="none";
-            imagePreview.src="";
-            photoInput.value="";
-            selectedFile=null;
-
-            setTimeout(()=>{
-                uploadBtn.disabled=true;
-                uploadBtn.innerText="📤 Enviar";
-                status.innerText="";
-            },3000);
-
-        }else{
-            console.log(data);
-            status.innerText="❌ Error al subir el archivo.";
-            uploadBtn.disabled=false;
-        }
-
-    }catch(error){
-        console.error(error);
-        status.innerText="❌ Error de conexión.";
-        uploadBtn.disabled=false;
-    }
-
-});
+</body>
+</html>

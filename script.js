@@ -60,7 +60,7 @@ uploadBtn.addEventListener("click", async () => {
     formData.append("file", selectedFile);
     formData.append("upload_preset", "event_photos");
     
-    // AGREGAMOS EL TAG AQUÍ PARA AGRUPAR TODAS LAS FOTOS
+    // AGREGAMOS EL TAG AQUÍ PARA AGRUPAR TODAS LAS FOTOS DE LA BODA
     formData.append("tags", "boda"); 
 
     const resourceType = "image"; 
