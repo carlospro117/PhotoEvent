@@ -8,9 +8,9 @@
   <!-- CDN de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- CDNs para la compresión de video con FFmpeg.wasm -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+  <!-- Scripts locales de FFmpeg -->
+  <script src="./ffmpeg.js"></script>
+  <script src="./util.js"></script>
 
   <style>
     :root {
@@ -167,9 +167,10 @@
       statusMsg.textContent = '⏳ Cargando motor de compresión de video...';
       await ffmpeg.load({
         coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-      });
-      ffmpegLoaded = true;
-    }
+        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+  });
+  ffmpegLoaded = true;
+}
 
     async function compressVideo(file) {
       const statusMsg = document.getElementById('status-msg');
