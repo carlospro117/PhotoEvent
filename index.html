@@ -4,76 +4,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cámara a Supabase</title>
-    <!-- Importar la librería de Supabase -->
+    <!-- Fuente moderna -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* --- RESET Y ESTILOS BASE --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 25px;
             text-align: center;
-            background-color: #f4f4f9;
-            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        h2 {
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #3ecf8e, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+
+        /* --- VISOR DE LA CÁMARA --- */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4; /* Proporción típica de fotos móviles */
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
         video {
             width: 100%;
-            border-radius: 8px;
-            background: #000;
-            margin-bottom: 15px;
+            height: 100%;
+            object-fit: cover; /* Asegura que el video llene el espacio sin deformarse */
         }
-        button {
-            background-color: #3ecf8e; /* Color de Supabase */
-            color: white;
+
+        /* --- CONTROLES (BOTONES) --- */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-primary {
+            background: #3ecf8e; /* Color Supabase */
+            color: #1a1a2e;
             border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 6px;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            width: 100%;
             cursor: pointer;
-            margin: 5px;
-            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(62, 207, 142, 0.4);
         }
-        button:disabled {
-            background-color: #ccc;
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(62, 207, 142, 0.6);
+        }
+
+        /* Botón de captura estilo cámara real */
+        .btn-capture {
+            background: white;
+            border: 4px solid #3ecf8e;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-capture::after {
+            content: '';
+            width: 50px;
+            height: 50px;
+            background: #3ecf8e;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .btn-capture:hover::after {
+            width: 55px;
+            height: 55px;
+        }
+
+        .btn-capture:active::after {
+            width: 45px;
+            height: 45px;
+        }
+
+        .btn-capture:disabled {
+            border-color: #555;
             cursor: not-allowed;
+            transform: scale(0.95);
         }
+        
+        .btn-capture:disabled::after {
+            background: #555;
+        }
+
+        /* --- ESTADO (MENSAJES) --- */
         #status {
             margin-top: 15px;
-            font-weight: bold;
-            color: #555;
+            font-size: 0.9rem;
+            font-weight: 600;
+            min-height: 20px; /* Evita que el diseño salte cuando aparece el texto */
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            transition: all 0.3s ease;
         }
+
+        .status-ready { background: rgba(62, 207, 142, 0.2); color: #3ecf8e; }
+        .status-loading { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .status-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Capturar y Subir Foto</h2>
+    <div class="app-container">
+        <h2>Snap & Cloud ☁️</h2>
         
-        <!-- Elemento de video para ver la cámara -->
-        <video id="video" autoplay playsinline></video>
+        <div class="video-wrapper">
+            <video id="video" autoplay playsinline></video>
+        </div>
         
-        <div>
-            <button id="btn-start">1. Abrir Cámara</button>
-            <button id="btn-capture" disabled>2. Tomar Foto y Subir</button>
+        <div class="controls">
+            <!-- Botón inicial para pedir permisos -->
+            <button id="btn-start" class="btn-primary">📸 Activar Cámara</button>
+            
+            <!-- Botón de captura (oculto hasta que la cámara se active) -->
+            <button id="btn-capture" class="btn-capture" disabled title="Tomar foto" style="display: none;"></button>
         </div>
 
-        <!-- Canvas oculto usado para procesar la imagen -->
         <canvas id="canvas" style="display: none;"></canvas>
         
-        <p id="status">Esperando...</p>
+        <div id="status">Presiona "Activar Cámara" para empezar</div>
     </div>
 
     <script>
         // --- CONFIGURACIÓN DE SUPABASE ---
-        const SUPABASE_URL = 'TU_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
+        const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
         
-        // Inicializar el cliente de Supabase
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- REFERENCIAS AL DOM ---
@@ -83,47 +193,51 @@
         const btnCapture = document.getElementById('btn-capture');
         const statusText = document.getElementById('status');
 
+        // Función auxiliar para actualizar mensajes
+        function updateStatus(message, className) {
+            statusText.innerText = message;
+            statusText.className = className;
+        }
+
         // --- LÓGICA DE LA CÁMARA ---
         btnStart.addEventListener('click', async () => {
             try {
-                // Solicitar permiso y acceder a la cámara (preferiblemente la trasera en móviles)
+                updateStatus("Solicitando permisos...", "status-loading");
+                
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment" } 
                 });
                 
                 video.srcObject = stream;
+                
+                // Cambiar interfaz
+                btnStart.style.display = 'none';
+                btnCapture.style.display = 'flex';
                 btnCapture.disabled = false;
-                statusText.innerText = "Cámara lista. Apunta y dispara.";
-                statusText.style.color = "black";
+                
+                updateStatus("Cámara lista", "status-ready");
             } catch (err) {
                 console.error("Error al acceder a la cámara: ", err);
-                statusText.innerText = "Error: Da permisos de cámara al navegador.";
-                statusText.style.color = "red";
+                updateStatus("Permiso denegado o sin cámara", "status-error");
             }
         });
 
         // --- LÓGICA DE CAPTURA Y SUBIDA ---
         btnCapture.addEventListener('click', () => {
-            statusText.innerText = "Capturando y subiendo a la nube...";
-            statusText.style.color = "blue";
-            btnCapture.disabled = true; // Prevenir múltiples clics
+            updateStatus("Subiendo a la nube...", "status-loading");
+            btnCapture.disabled = true; 
 
-            // 1. Ajustar el canvas al tamaño real del video
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const context = canvas.getContext('2d');
             
-            // 2. Dibujar el fotograma actual del video en el canvas
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // 3. Convertir el canvas a un archivo Blob (JPG)
             canvas.toBlob(async (blob) => {
-                // Generar un nombre único para la foto basado en la fecha
                 const fileName = `foto_${Date.now()}.jpg`;
 
-                // 4. Subir el Blob a Supabase Storage
                 const { data, error } = await supabase.storage
-                    .from('fotos') // Asegúrate de que este nombre coincida con tu bucket
+                    .from('fotos') 
                     .upload(fileName, blob, {
                         contentType: 'image/jpeg',
                         upsert: false
@@ -131,16 +245,20 @@
 
                 if (error) {
                     console.error("Error de Supabase: ", error);
-                    statusText.innerText = "Error al subir. Revisa los permisos de tu Bucket en Supabase.";
-                    statusText.style.color = "red";
+                    updateStatus("Error al guardar la foto", "status-error");
                 } else {
                     console.log("Subida exitosa: ", data);
-                    statusText.innerText = "¡Foto guardada exitosamente en Supabase!";
-                    statusText.style.color = "green";
+                    updateStatus("¡Guardada con éxito!", "status-success");
                 }
                 
                 btnCapture.disabled = false;
-            }, 'image/jpeg', 0.8); // 0.8 es la calidad de compresión (80%)
+                
+                // Restablecer el mensaje después de 3 segundos
+                setTimeout(() => {
+                    updateStatus("Cámara lista", "status-ready");
+                }, 3000);
+
+            }, 'image/jpeg', 0.8);
         });
     </script>
 </body>
