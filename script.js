@@ -1,139 +1,130 @@
+// Usar window.supabase para evitar errores de referencia
+const supabaseUrl = 'https://pqufeiliyerbfnkukzay.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
+
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+const bucketName = 'PhotoEvent';
+
 const photoInput = document.getElementById("photoInput");
-const videoInput = document.getElementById("videoInput");
-
 const photoBtn = document.getElementById("photoBtn");
-const videoBtn = document.getElementById("videoBtn");
-
 const imagePreview = document.getElementById("imagePreview");
-const videoPreview = document.getElementById("videoPreview");
-
 const uploadBtn = document.getElementById("uploadBtn");
 const status = document.getElementById("status");
+const gallery = document.getElementById("gallery");
 
 let selectedFile = null;
 
-// FOTO
+// Abrir cámara con el método que ya te funcionaba
 photoBtn.addEventListener("click", () => {
     photoInput.click();
 });
 
-// VIDEO
-videoBtn.addEventListener("click", () => {
-    videoInput.click();
-});
-
-// FOTO
+// Al seleccionar la foto
 photoInput.addEventListener("change", () => {
-
     selectedFile = photoInput.files[0];
 
-    if(!selectedFile) return;
+    if (!selectedFile) return;
 
+    // Previsualización rápida y ligera
     imagePreview.src = URL.createObjectURL(selectedFile);
+    imagePreview.style.display = "block";
 
-    imagePreview.style.display="block";
-
-    videoPreview.style.display="none";
-    videoPreview.src="";
-
-    uploadBtn.innerText="📤 Enviar Foto";
-    uploadBtn.disabled=false;
-
+    uploadBtn.innerText = "📤 Enviar Foto";
+    uploadBtn.disabled = false;
+    status.innerText = "";
 });
 
-// VIDEO
-videoInput.addEventListener("change", () => {
+// Subir a Supabase
+uploadBtn.addEventListener("click", async () => {
+    if (!selectedFile) return;
 
-    selectedFile = videoInput.files[0];
+    status.innerText = "📤 Enviando a la nube...";
+    uploadBtn.disabled = true;
 
-    if(!selectedFile) return;
+    const fileExt = selectedFile.name.split('.').pop() || 'jpg';
+    const fileName = `foto_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    videoPreview.src = URL.createObjectURL(selectedFile);
+    try {
+        const { data, error } = await supabaseClient.storage
+            .from(bucketName)
+            .upload(fileName, selectedFile);
 
-    videoPreview.style.display="block";
+        if (error) throw error;
 
-    imagePreview.style.display="none";
-    imagePreview.src="";
+        status.innerText = "🎉 ¡Foto enviada correctamente!";
 
-    uploadBtn.innerText="📤 Enviar Video";
-    uploadBtn.disabled=false;
+        imagePreview.style.display = "none";
+        imagePreview.src = "";
+        photoInput.value = "";
+        selectedFile = null;
 
+        // Recargar la galería para mostrar la nueva foto
+        loadGallery();
+
+        setTimeout(() => {
+            uploadBtn.disabled = true;
+            uploadBtn.innerText = "📤 Enviar";
+            status.innerText = "";
+        }, 3000);
+
+    } catch (error) {
+        console.error(error);
+        status.innerText = "❌ Error al subir: " + error.message;
+        uploadBtn.disabled = false;
+    }
 });
 
-// SUBIR
-uploadBtn.addEventListener("click", async()=>{
+// Cargar galería de fotos de otros usuarios
+async function loadGallery() {
+    try {
+        const { data: files, error } = await supabaseClient.storage
+            .from(bucketName)
+            .list('', {
+                limit: 20,
+                sortBy: { column: 'created_at', order: 'desc' }
+            });
 
-    if(!selectedFile) return;
+        if (error) throw error;
 
-    status.innerText="📤 Enviando...";
+        gallery.innerHTML = "";
+        const validFiles = files.filter(f => f.name && !f.name.startsWith('.'));
 
-    uploadBtn.disabled=true;
-
-    const formData=new FormData();
-
-    formData.append("file",selectedFile);
-    formData.append("upload_preset","event_photos");
-
-    const resourceType =
-        selectedFile.type.startsWith("video")
-        ? "video"
-        : "image";
-
-    try{
-
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/surehwg9/${resourceType}/upload`,
-            {
-                method:"POST",
-                body:formData
-            }
-        );
-
-        const data = await response.json();
-
-        if(response.ok){
-
-            console.log(data.secure_url);
-
-            status.innerText="🎉 ¡Gracias! Tu archivo fue enviado correctamente.";
-
-            imagePreview.style.display="none";
-            videoPreview.style.display="none";
-
-            imagePreview.src="";
-            videoPreview.src="";
-
-            photoInput.value="";
-            videoInput.value="";
-
-            selectedFile=null;
-
-            setTimeout(()=>{
-
-                uploadBtn.disabled=true;
-                uploadBtn.innerText="📤 Enviar";
-                status.innerText="";
-
-            },3000);
-
-        }else{
-
-            console.log(data);
-
-            status.innerText="❌ Error al subir el archivo.";
-
-            uploadBtn.disabled=false;
-
+        if (validFiles.length === 0) {
+            gallery.innerHTML = '<p style="grid-column: 1 / -1; color: #9ca3af; font-size: 14px;">Aún no hay fotos. ¡Sé el primero!</p>';
+            return;
         }
 
-    }catch(error){
+        validFiles.forEach(file => {
+            const { data } = supabaseClient.storage
+                .from(bucketName)
+                .getPublicUrl(file.name);
+            
+            const publicUrl = data.publicUrl;
 
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'gallery-item';
+
+            const img = document.createElement('img');
+            img.src = publicUrl;
+            img.alt = "Foto de evento";
+            img.loading = "lazy";
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `${publicUrl}?download=`;
+            downloadLink.className = 'download-btn';
+            downloadLink.innerHTML = '⬇ Descargar';
+            downloadLink.target = '_blank';
+
+            itemDiv.appendChild(img);
+            itemDiv.appendChild(downloadLink);
+            gallery.appendChild(itemDiv);
+        });
+
+    } catch (error) {
         console.error(error);
-
-        status.innerText="❌ Error de conexión.";
-
-        uploadBtn.disabled=false;
-
+        gallery.innerHTML = '<p style="grid-column: 1 / -1; color: #ef4444; font-size: 14px;">Error al cargar la galería.</p>';
     }
+}
 
-});
+// Ejecutar al cargar la página
+loadGallery();

@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evento</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Importar Supabase desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <div class="container">
 
-    <h1>Toma una foto o graba un video y envíalo</h1>
+    <h1>Toma una foto y envíala</h1>
     
     <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
 
-    <!-- FOTO -->
+    <!-- FOTO (Oculto) -->
     <input
         type="file"
         id="photoInput"
@@ -22,35 +24,26 @@
         capture="environment"
         hidden>
 
-    <!-- VIDEO -->
-    <input
-        type="file"
-        id="videoInput"
-        accept="video/*"
-        capture="environment"
-        hidden>
-
     <div class="button-row">
-
         <button id="photoBtn">
             📷<br>Tomar Foto
         </button>
-
-        <button id="videoBtn">
-            🎥<br>Grabar Video
-        </button>
-
     </div>
 
-    <img id="imagePreview">
-
-    <video id="videoPreview" controls></video>
+    <img id="imagePreview" alt="Previsualización">
 
     <button id="uploadBtn" disabled>
-        📤 Enviar
+        📤 Enviar Foto
     </button>
 
     <p id="status"></p>
+
+    <hr style="margin: 25px 0; border: 0; border-top: 1px solid #374151;">
+
+    <h2>Galería Reciente</h2>
+    <div id="gallery" class="gallery">
+        <p style="color: #9ca3af; font-size: 14px;">Cargando galería...</p>
+    </div>
 
 </div>
 
