@@ -49,7 +49,7 @@ uploadBtn.addEventListener("click", async () => {
     uploadBtn.disabled = true;
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36.substring(2))}.${fileExt}`;
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
 
     // 1. Subir al Bucket 'PhotoEvent'
     const { data: uploadData, error } = await supabase.storage.from('PhotoEvent').upload(fileName, file);
