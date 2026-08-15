@@ -145,91 +145,95 @@
         </div>
     </div>
 
-    <script>
-        // --- 1. CONFIGURACIÓN DE SUPABASE ---
-        const supabaseUrl = 'https://pqufeiliyerbfnkukzay.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
-        
-        // Inicializar cliente
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        const bucketName = 'PhotoEvent';
+<script>
+    // --- 1. CONFIGURACIÓN DE SUPABASE ---
+    const supabaseUrl = 'https://pqufeiliyerbfnkukzay.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
+    
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const bucketName = 'PhotoEvent';
 
-        // --- 2. REFERENCIAS AL DOM ---
-        const cameraInput = document.getElementById('cameraInput');
-        const previewContainer = document.getElementById('preview-container');
-        const preview = document.getElementById('preview');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const loadingText = document.getElementById('loadingText');
-        const gallery = document.getElementById('gallery');
+    // --- 2. REFERENCIAS AL DOM ---
+    const cameraInput = document.getElementById('cameraInput');
+    const previewContainer = document.getElementById('preview-container');
+    const preview = document.getElementById('preview');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const loadingText = document.getElementById('loadingText');
+    const gallery = document.getElementById('gallery');
 
-        let currentFile = null;
+    let currentFile = null;
 
-        // --- 3. LÓGICA DE PREVISUALIZACIÓN ---
-        cameraInput.addEventListener('change', (event) => {
+    // --- 3. LÓGICA DE PREVISUALIZACIÓN OPTIMIZADA ---
+    cameraInput.addEventListener('change', (event) => {
+        try {
             const file = event.target.files[0];
-            if (file) {
-                currentFile = file;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
-                    previewContainer.style.display = 'block';
-                    uploadBtn.style.display = 'inline-block';
-                };
-                reader.readAsDataURL(file);
+            
+            if (!file) {
+                console.log("No se seleccionó ningún archivo.");
+                return;
             }
-        });
 
-        // --- 4. LÓGICA DE SUBIDA A SUPABASE ---
-        uploadBtn.addEventListener('click', async () => {
-            if (!currentFile) return;
+            currentFile = file;
 
-            // Ocultar botón y mostrar texto de carga
-            uploadBtn.style.display = 'none';
-            loadingText.style.display = 'block';
+            // MÉTODO NUEVO: createObjectURL es súper rápido y no satura la memoria del móvil
+            const objectUrl = URL.createObjectURL(file);
+            preview.src = objectUrl;
 
-            // Generar nombre de archivo único para evitar reemplazos
-            const fileExt = currentFile.name.split('.').pop() || 'jpg';
-            const fileName = `foto_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            // Esperar a que la imagen cargue en la etiqueta <img> antes de mostrar el contenedor
+            preview.onload = () => {
+                previewContainer.style.display = 'block';
+                uploadBtn.style.display = 'inline-block';
+            };
 
-            // Subir al bucket
+        } catch (error) {
+            alert("Hubo un error al procesar la foto: " + error.message);
+        }
+    });
+
+    // --- 4. LÓGICA DE SUBIDA A SUPABASE ---
+    uploadBtn.addEventListener('click', async () => {
+        if (!currentFile) return;
+
+        uploadBtn.style.display = 'none';
+        loadingText.style.display = 'block';
+
+        const fileExt = currentFile.name.split('.').pop() || 'jpg';
+        const fileName = `foto_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        try {
             const { data, error } = await supabase.storage
                 .from(bucketName)
                 .upload(fileName, currentFile);
 
+            if (error) throw error;
+
+            // Limpiar interfaz tras el éxito
+            previewContainer.style.display = 'none';
+            currentFile = null;
+            cameraInput.value = ''; 
+            
+            loadGallery();
+        } catch (error) {
+            alert('Error al subir a Supabase: ' + error.message);
+            uploadBtn.style.display = 'inline-block';
+        } finally {
             loadingText.style.display = 'none';
+        }
+    });
 
-            if (error) {
-                alert('Error al subir: ' + error.message);
-                uploadBtn.style.display = 'inline-block';
-            } else {
-                // Resetear interfaz tras éxito
-                previewContainer.style.display = 'none';
-                currentFile = null;
-                cameraInput.value = ''; // Limpiar input
-                
-                // Recargar galería automáticamente
-                loadGallery();
-            }
-        });
-
-        // --- 5. LÓGICA PARA MOSTRAR LA GALERÍA ---
-        async function loadGallery() {
-            // Obtener lista de archivos del bucket, ordenados del más nuevo al más viejo
+    // --- 5. LÓGICA PARA MOSTRAR LA GALERÍA ---
+    async function loadGallery() {
+        try {
             const { data: files, error } = await supabase.storage
                 .from(bucketName)
                 .list('', {
-                    limit: 30, // Carga las últimas 30 fotos
+                    limit: 30,
                     sortBy: { column: 'created_at', order: 'desc' }
                 });
 
-            if (error) {
-                gallery.innerHTML = '<p style="grid-column: 1 / -1;">Error al cargar la galería.</p>';
-                return;
-            }
+            if (error) throw error;
 
             gallery.innerHTML = '';
-
-            // Filtrar archivos ocultos (como la carpeta .emptyFolderPlaceholder)
             const validFiles = files.filter(f => f.name && !f.name.startsWith('.'));
 
             if (validFiles.length === 0) {
@@ -237,26 +241,18 @@
                 return;
             }
 
-            // Crear las imágenes de la galería
             validFiles.forEach(file => {
-                // Obtener URL pública
-                const { data } = supabase.storage
-                    .from(bucketName)
-                    .getPublicUrl(file.name);
-                
+                const { data } = supabase.storage.from(bucketName).getPublicUrl(file.name);
                 const publicUrl = data.publicUrl;
 
-                // Crear contenedor
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'gallery-item';
 
-                // Crear imagen
                 const img = document.createElement('img');
                 img.src = publicUrl;
-                img.alt = "Foto subida por usuario";
-                img.loading = "lazy"; // Mejora el rendimiento al hacer scroll
+                img.alt = "Foto del evento";
+                img.loading = "lazy";
 
-                // Botón de descarga (El ?download= le dice a Supabase que fuerce la descarga del archivo)
                 const downloadLink = document.createElement('a');
                 downloadLink.href = `${publicUrl}?download=`;
                 downloadLink.className = 'download-btn';
@@ -267,10 +263,12 @@
                 itemDiv.appendChild(downloadLink);
                 gallery.appendChild(itemDiv);
             });
+        } catch (error) {
+            gallery.innerHTML = `<p style="grid-column: 1 / -1; color: red;">Error al cargar: ${error.message}</p>`;
         }
+    }
 
-        // Cargar galería tan pronto la página se abra
-        loadGallery();
-    </script>
+    loadGallery();
+</script>
 </body>
 </html>
