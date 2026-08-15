@@ -1,102 +1,72 @@
+const supabase = supabase.createClient(
+    'https://pqufeiliyerbfnkukzay.supabase.co', 
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs'
+);
+
 const photoInput = document.getElementById("photoInput");
 const photoBtn = document.getElementById("photoBtn");
 const imagePreview = document.getElementById("imagePreview");
 const uploadBtn = document.getElementById("uploadBtn");
-const status = document.getElementById("status");
 const recentPhotos = document.getElementById("recentPhotos");
 
-let selectedFile = null;
-
-// Cargar las fotos guardadas en el dispositivo al abrir la página
-function loadSavedPhotos() {
-    const saved = localStorage.getItem("boda_fotos");
-    if (saved) {
-        const photos = JSON.parse(saved);
+// Cargar fotos al iniciar
+async function loadGallery() {
+    const { data } = await supabase.from('fotos').select('url').order('created_at', { ascending: false });
+    if (data) {
         recentPhotos.innerHTML = "";
-        photos.forEach(url => {
-            const imgThumbnail = document.createElement("img");
-            imgThumbnail.src = url;
-            recentPhotos.appendChild(imgThumbnail);
-        });
+        data.forEach(item => appendPhoto(item.url));
     }
 }
 
-loadSavedPhotos();
+// Realtime: Escuchar nuevas fotos
+supabase.channel('public:fotos').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'fotos' }, payload => {
+    appendPhoto(payload.new.url);
+}).subscribe();
 
-// FOTO
-photoBtn.addEventListener("click", () => {
-    photoInput.click();
-});
+function appendPhoto(url) {
+    const img = document.createElement("img");
+    img.src = url;
+    recentPhotos.prepend(img);
+}
 
-photoInput.addEventListener("change", () => {
-    selectedFile = photoInput.files[0];
-    if(!selectedFile) return;
+loadGallery();
 
-    imagePreview.src = URL.createObjectURL(selectedFile);
-    imagePreview.style.display = "block";
-
-    uploadBtn.innerText = "📤 Enviar Foto";
-    uploadBtn.disabled = false;
-});
-
-// SUBIR
+// Lógica de Subida directa a Supabase Storage
 uploadBtn.addEventListener("click", async () => {
-    if(!selectedFile) return;
+    const file = photoInput.files[0];
+    if (!file) return;
 
-    status.innerText = "📤 Enviando...";
+    uploadBtn.innerText = "📤 Subiendo...";
     uploadBtn.disabled = true;
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("upload_preset", "event_photos");
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
 
-    const resourceType = "image"; 
+    // 1. Subir al Bucket 'PhotoEvent'
+    const { data: uploadData, error } = await supabase.storage.from('PhotoEvent').upload(fileName, file);
 
-    try {
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/surehwg9/${resourceType}/upload`,
-            {
-                method: "POST",
-                body: formData
-            }
-        );
-
-        const data = await response.json();
-
-        if(response.ok) {
-            // Guardar la URL en la galería visual y en la memoria del dispositivo
-            const imageUrl = data.secure_url;
-            
-            const imgThumbnail = document.createElement("img");
-            imgThumbnail.src = imageUrl;
-            recentPhotos.insertBefore(imgThumbnail, recentPhotos.firstChild);
-
-            // Actualizar almacenamiento local para que no se pierdan al actualizar
-            let saved = JSON.parse(localStorage.getItem("boda_fotos")) || [];
-            saved.unshift(imageUrl);
-            localStorage.setItem("boda_fotos", JSON.stringify(saved));
-
-            status.innerText = "🎉 ¡Gracias! Tu foto fue enviada.";
-
-            imagePreview.style.display = "none";
-            imagePreview.src = "";
-            photoInput.value = "";
-            selectedFile = null;
-
-            setTimeout(() => {
-                uploadBtn.disabled = true;
-                uploadBtn.innerText = "📤 Enviar";
-                status.innerText = "";
-            }, 3000);
-
-        } else {
-            console.log(data);
-            status.innerText = "❌ Error al subir el archivo.";
-            uploadBtn.disabled = false;
-        }
-    } catch(error) {
-        console.error(error);
-        status.innerText = "❌ Error de conexión.";
+    if (error) {
+        alert("Error al subir: " + error.message);
+        uploadBtn.innerText = "📤 Enviar";
         uploadBtn.disabled = false;
+        return;
     }
+
+    // 2. Obtener URL pública
+    const { data: { publicUrl } } = supabase.storage.from('PhotoEvent').getPublicUrl(fileName);
+
+    // 3. Guardar URL en la tabla 'fotos'
+    await supabase.from('fotos').insert([{ url: publicUrl }]);
+
+    // Limpiar
+    imagePreview.style.display = "none";
+    uploadBtn.innerText = "📤 Enviar";
+    photoInput.value = "";
+});
+
+photoBtn.addEventListener("click", () => photoInput.click());
+photoInput.addEventListener("change", () => {
+    imagePreview.src = URL.createObjectURL(photoInput.files[0]);
+    imagePreview.style.display = "block";
+    uploadBtn.disabled = false;
 });
