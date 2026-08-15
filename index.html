@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cámara a Supabase</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* --- RESET Y ESTILOS BASE --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', sans-serif;
@@ -75,14 +75,9 @@
             gap: 15px;
         }
 
-        /* --- NUEVO ESTILO PARA OCULTAR EL INPUT DE FORMA SEGURA --- */
-        .hidden-input {
-            width: 0.1px;
-            height: 0.1px;
-            opacity: 0;
-            overflow: hidden;
-            position: absolute;
-            z-index: -1;
+        /* Input nativo oculto de forma tradicional y segura */
+        #camera-input {
+            display: none;
         }
 
         .btn {
@@ -95,37 +90,23 @@
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
-            display: inline-block; /* Necesario para que el label actúe como botón */
+            display: inline-block;
         }
 
-        .btn-camera {
-            background: #3b82f6; 
-            color: white;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-
+        .btn-camera { background: #3b82f6; color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
         .btn-camera:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
 
-        .btn-upload {
-            background: #3ecf8e; 
-            color: #1a1a2e;
-            box-shadow: 0 4px 15px rgba(62, 207, 142, 0.4);
-        }
-
+        .btn-upload { background: #3ecf8e; color: #1a1a2e; box-shadow: 0 4px 15px rgba(62, 207, 142, 0.4); }
         .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(62, 207, 142, 0.6); }
 
+        .btn-cancel { background: transparent; color: #f87171; border: 1px solid #f87171; }
+
         .btn:disabled {
-            background: #555;
-            color: #888;
+            background: #555 !important;
+            color: #888 !important;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
-        }
-
-        .btn-cancel {
-            background: transparent;
-            color: #f87171;
-            border: 1px solid #f87171;
         }
 
         #status {
@@ -135,17 +116,19 @@
             min-height: 20px;
             padding: 8px 12px;
             border-radius: 8px;
-            display: inline-block;
+            display: block;
             transition: all 0.3s ease;
-            opacity: 0;
         }
 
-        .status-ready { background: rgba(62, 207, 142, 0.2); color: #3ecf8e; opacity: 1;}
-        .status-loading { background: rgba(59, 130, 246, 0.2); color: #60a5fa; opacity: 1;}
-        .status-error { background: rgba(239, 68, 68, 0.2); color: #f87171; opacity: 1;}
+        .status-ready { background: rgba(62, 207, 142, 0.2); color: #3ecf8e; }
+        .status-loading { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
     </style>
 </head>
 <body>
+
+    <!-- INPUT FUERA DE LOS CONTENEDORES PARA EVITAR BUGS DE RENDERIZADO EN MÓVILES -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment">
 
     <div class="app-container">
         <h2>Snap & Cloud ☁️</h2>
@@ -156,25 +139,24 @@
         </div>
         
         <div class="controls">
-            <!-- INPUT OCULTO SEGURO -->
-            <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden-input">
-            
-            <!-- EL LABEL ACTÚA COMO BOTÓN NATIVO -->
+            <!-- BOTONES DE ACCIÓN -->
             <label for="camera-input" id="btn-take-photo" class="btn btn-camera">📸 Tomar Foto</label>
             
             <button id="btn-send-photo" class="btn btn-upload" style="display: none;">🚀 Enviar a la nube</button>
-            <!-- REUSAMOS EL LABEL PARA VOLVER A TOMAR LA FOTO -->
             <label for="camera-input" id="btn-retake" class="btn btn-cancel" style="display: none;">Volver a tomar</label>
         </div>
         
-        <div id="status">Esperando...</div>
+        <div id="status">Esperando tu foto...</div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs';
+        // --- 1. CONFIGURACIÓN ---
+        const SUPABASE_URL = 'https://pqufeiliyerbfnkukzay.supabase.co'; // <-- REEMPLAZA ESTO
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdWZlaWxpeWVyYmZua3VremF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzEzMzYsImV4cCI6MjEwMjI0NzMzNn0.F383-Gb1vrbLlaZa-chEwiylPPesh_pWurQQHVhf5gs'; // <-- REEMPLAZA ESTO
+        
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // --- 2. REFERENCIAS ---
         const cameraInput = document.getElementById('camera-input');
         const btnTakePhoto = document.getElementById('btn-take-photo');
         const btnSendPhoto = document.getElementById('btn-send-photo');
@@ -190,59 +172,87 @@
             statusText.className = className;
         }
 
-        // --- FLUJO: PREVISUALIZAR LA FOTO ---
-        cameraInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            
-            if (file) {
+        // --- 3. PROCESAR LA FOTO (AL VOLVER DE LA CÁMARA NATIVA) ---
+        cameraInput.addEventListener('change', function(event) {
+            try {
+                updateStatus("Procesando imagen...", "status-loading");
+                
+                const file = event.target.files[0];
+                
+                if (!file) {
+                    updateStatus("No se tomó ninguna foto.", "status-error");
+                    return;
+                }
+
                 currentFile = file;
                 
+                // Crear URL temporal de forma segura
                 const imageUrl = URL.createObjectURL(file);
+                
+                // SOLO mostrar los botones cuando la imagen termine de cargar en pantalla
+                imagePreview.onload = function() {
+                    imagePreview.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    
+                    btnTakePhoto.style.display = 'none';
+                    btnSendPhoto.style.display = 'block';
+                    btnRetake.style.display = 'inline-block';
+                    
+                    updateStatus("¡Lista! ¿La enviamos?", "status-ready");
+                };
+
+                // Si la imagen está corrupta o el celular falló al leerla
+                imagePreview.onerror = function() {
+                    updateStatus("Error visualizando la foto. Intenta de nuevo.", "status-error");
+                };
+
+                // Asignar la imagen
                 imagePreview.src = imageUrl;
-                
-                imagePreview.style.display = 'block';
-                placeholder.style.display = 'none';
-                
-                btnTakePhoto.style.display = 'none';
-                btnSendPhoto.style.display = 'block';
-                btnRetake.style.display = 'inline-block'; // Mostramos el label de reintento
-                
-                updateStatus("¡Se ve genial! ¿La enviamos?", "status-ready");
+
+            } catch (error) {
+                console.error("Error en JS:", error);
+                updateStatus("Error en el sistema: " + error.message, "status-error");
             }
         });
 
-        // --- FLUJO: ENVIAR A SUPABASE ---
+        // --- 4. ENVIAR A SUPABASE ---
         btnSendPhoto.addEventListener('click', async () => {
             if (!currentFile) return;
 
+            // Bloquear botones para evitar múltiples envíos
             btnSendPhoto.disabled = true;
-            // Quitamos pointer-events al label temporalmente para que no se pueda clickear mientras sube
             btnRetake.style.pointerEvents = 'none';
             btnRetake.style.opacity = '0.5';
             
-            updateStatus("Subiendo a la nube...", "status-loading");
+            updateStatus("Subiendo a la nube (esto puede tardar unos segundos)...", "status-loading");
 
-            const fileExt = currentFile.name.split('.').pop();
+            // Crear un nombre de archivo único
+            const fileExt = currentFile.name ? currentFile.name.split('.').pop() : 'jpg';
             const fileName = `foto_${Date.now()}.${fileExt}`;
 
+            // Subir el archivo
             const { data, error } = await supabase.storage
-                .from('fotos') 
+                .from('fotos') // <-- Asegúrate de que tu bucket se llame "fotos"
                 .upload(fileName, currentFile, {
                     cacheControl: '3600',
                     upsert: false
                 });
 
             if (error) {
-                console.error("Error al subir: ", error);
-                updateStatus("Error al guardar. Intenta de nuevo.", "status-error");
+                console.error("Error al subir a Supabase: ", error);
+                updateStatus("Error de Supabase: Revisa las políticas públicas (Policies) de tu Bucket.", "status-error");
+                
+                // Desbloquear botones si falla
                 btnSendPhoto.disabled = false;
                 btnRetake.style.pointerEvents = 'auto';
                 btnRetake.style.opacity = '1';
             } else {
-                updateStatus("¡Foto guardada con éxito!", "status-ready");
+                updateStatus("✅ ¡Foto guardada con éxito en Supabase!", "status-ready");
                 
+                // Limpiar la pantalla después de 3 segundos para tomar otra
                 setTimeout(() => {
                     currentFile = null;
+                    cameraInput.value = ''; // Limpiar el input
                     imagePreview.src = '';
                     imagePreview.style.display = 'none';
                     placeholder.style.display = 'block';
@@ -254,11 +264,9 @@
                     btnSendPhoto.disabled = false;
                     btnRetake.style.pointerEvents = 'auto';
                     btnRetake.style.opacity = '1';
-                    statusText.style.opacity = '0';
                     
-                    // Limpiamos el input por si suben la misma foto seguida
-                    cameraInput.value = '';
-                }, 2500);
+                    updateStatus("Esperando tu foto...", "");
+                }, 3000);
             }
         });
     </script>
