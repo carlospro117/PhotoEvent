@@ -3,44 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evento</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- SDK de Supabase -->
+    <title>Cámara a Supabase</title>
+    <!-- Importar la librería de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #3ecf8e; /* Color de Supabase */
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Toma una foto y envíala</h1>
-    <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
-
-    <!-- Botón que activa el selector de archivos / cámara de forma nativa -->
-    <label for="photoInput" class="custom-file-upload">
-        📷<br>Tomar Foto
-    </label>
-    <input
-        type="file"
-        id="photoInput"
-        accept="image/*"
-        capture="environment">
-
-    <img id="imagePreview" alt="Vista previa">
-
-    <button id="uploadBtn" disabled>
-        📤 Enviar
-    </button>
-
-    <p id="status"></p>
-
-    <div class="recent-section">
-        <h3>Fotos de los invitados</h3>
-        <div id="recentPhotos" class="recent-photos">
-            <!-- Las fotos en tiempo real aparecerán aquí -->
+    <div class="container">
+        <h2>Capturar y Subir Foto</h2>
+        
+        <!-- Elemento de video para ver la cámara -->
+        <video id="video" autoplay playsinline></video>
+        
+        <div>
+            <button id="btn-start">1. Abrir Cámara</button>
+            <button id="btn-capture" disabled>2. Tomar Foto y Subir</button>
         </div>
+
+        <!-- Canvas oculto usado para procesar la imagen -->
+        <canvas id="canvas" style="display: none;"></canvas>
+        
+        <p id="status">Esperando...</p>
     </div>
-</div>
 
-<script src="script.js"></script>
+    <script>
+        // --- CONFIGURACIÓN DE SUPABASE ---
+        const SUPABASE_URL = 'TU_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
+        
+        // Inicializar el cliente de Supabase
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // --- REFERENCIAS AL DOM ---
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const btnStart = document.getElementById('btn-start');
+        const btnCapture = document.getElementById('btn-capture');
+        const statusText = document.getElementById('status');
+
+        // --- LÓGICA DE LA CÁMARA ---
+        btnStart.addEventListener('click', async () => {
+            try {
+                // Solicitar permiso y acceder a la cámara (preferiblemente la trasera en móviles)
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                
+                video.srcObject = stream;
+                btnCapture.disabled = false;
+                statusText.innerText = "Cámara lista. Apunta y dispara.";
+                statusText.style.color = "black";
+            } catch (err) {
+                console.error("Error al acceder a la cámara: ", err);
+                statusText.innerText = "Error: Da permisos de cámara al navegador.";
+                statusText.style.color = "red";
+            }
+        });
+
+        // --- LÓGICA DE CAPTURA Y SUBIDA ---
+        btnCapture.addEventListener('click', () => {
+            statusText.innerText = "Capturando y subiendo a la nube...";
+            statusText.style.color = "blue";
+            btnCapture.disabled = true; // Prevenir múltiples clics
+
+            // 1. Ajustar el canvas al tamaño real del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            
+            // 2. Dibujar el fotograma actual del video en el canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // 3. Convertir el canvas a un archivo Blob (JPG)
+            canvas.toBlob(async (blob) => {
+                // Generar un nombre único para la foto basado en la fecha
+                const fileName = `foto_${Date.now()}.jpg`;
+
+                // 4. Subir el Blob a Supabase Storage
+                const { data, error } = await supabase.storage
+                    .from('fotos') // Asegúrate de que este nombre coincida con tu bucket
+                    .upload(fileName, blob, {
+                        contentType: 'image/jpeg',
+                        upsert: false
+                    });
+
+                if (error) {
+                    console.error("Error de Supabase: ", error);
+                    statusText.innerText = "Error al subir. Revisa los permisos de tu Bucket en Supabase.";
+                    statusText.style.color = "red";
+                } else {
+                    console.log("Subida exitosa: ", data);
+                    statusText.innerText = "¡Foto guardada exitosamente en Supabase!";
+                    statusText.style.color = "green";
+                }
+                
+                btnCapture.disabled = false;
+            }, 'image/jpeg', 0.8); // 0.8 es la calidad de compresión (80%)
+        });
+    </script>
 </body>
 </html>
