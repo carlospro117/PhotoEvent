@@ -7,6 +7,7 @@ const photoInput = document.getElementById("photoInput");
 const imagePreview = document.getElementById("imagePreview");
 const uploadBtn = document.getElementById("uploadBtn");
 const recentPhotos = document.getElementById("recentPhotos");
+const statusText = document.getElementById("status");
 
 // Cargar fotos al iniciar
 async function loadGallery() {
@@ -30,14 +31,20 @@ function appendPhoto(url) {
 
 loadGallery();
 
-// Vista previa al seleccionar la foto
-photoInput.addEventListener("change", () => {
-    const file = photoInput.files[0];
-    if(!file) return;
+// Vista previa robusta usando FileReader
+photoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    imagePreview.src = URL.createObjectURL(file);
-    imagePreview.style.display = "block";
-    uploadBtn.disabled = false;
+    statusText.innerText = "📸 Foto seleccionada con éxito";
+
+    const reader = new FileReader();
+    reader.onload = function(uploadEvent) {
+        imagePreview.src = uploadEvent.target.result;
+        imagePreview.style.display = "block";
+        uploadBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
 });
 
 // Lógica de Subida directa a Supabase Storage
@@ -47,8 +54,9 @@ uploadBtn.addEventListener("click", async () => {
 
     uploadBtn.innerText = "📤 Subiendo...";
     uploadBtn.disabled = true;
+    statusText.innerText = "📤 Subiendo a la nube...";
 
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
 
     // 1. Subir al Bucket 'PhotoEvent'
@@ -58,6 +66,7 @@ uploadBtn.addEventListener("click", async () => {
         alert("Error al subir: " + error.message);
         uploadBtn.innerText = "📤 Enviar";
         uploadBtn.disabled = false;
+        statusText.innerText = "❌ Error al subir.";
         return;
     }
 
@@ -65,11 +74,23 @@ uploadBtn.addEventListener("click", async () => {
     const { data: { publicUrl } } = supabase.storage.from('PhotoEvent').getPublicUrl(fileName);
 
     // 3. Guardar URL en la tabla 'fotos'
-    await supabase.from('fotos').insert([{ url: publicUrl }]);
+    const { error: dbError } = await supabase.from('fotos').insert([{ url: publicUrl }]);
 
-    // Limpiar
+    if (dbError) {
+        alert("Error guardando en la tabla: " + dbError.message);
+        uploadBtn.innerText = "📤 Enviar";
+        uploadBtn.disabled = false;
+        return;
+    }
+
+    // Limpiar interfaz
     imagePreview.style.display = "none";
     uploadBtn.innerText = "📤 Enviar";
     photoInput.value = "";
     uploadBtn.disabled = true;
+    statusText.innerText = "🎉 ¡Foto enviada con éxito!";
+    
+    setTimeout(() => {
+        statusText.innerText = "";
+    }, 3000);
 });
