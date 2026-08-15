@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evento</title>
     <link rel="stylesheet" href="style.css">
+    <!-- SDK de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -13,8 +14,8 @@
     <h1>Toma una foto y envíala</h1>
     <p>Boda <br> Rafael Ricardo y Lorna Yesenia <br> 15 de agosto de 2026</p>
 
-    <!-- EL INPUT ABRAZA AL BOTÓN PARA GARANTIZAR QUE ABRA LA CÁMARA EN MÓVILES -->
-    <label for="photoInput" class="custom-file-upload" id="photoBtn">
+    <!-- Botón que activa el selector de archivos / cámara de forma nativa -->
+    <label for="photoInput" class="custom-file-upload">
         📷<br>Tomar Foto
     </label>
     <input
@@ -23,16 +24,23 @@
         accept="image/*"
         capture="environment">
 
-    <img id="imagePreview">
-    <button id="uploadBtn" disabled>📤 Enviar</button>
+    <img id="imagePreview" alt="Vista previa">
+
+    <button id="uploadBtn" disabled>
+        📤 Enviar
+    </button>
+
     <p id="status"></p>
 
     <div class="recent-section">
         <h3>Fotos de los invitados</h3>
-        <div id="recentPhotos" class="recent-photos"></div>
+        <div id="recentPhotos" class="recent-photos">
+            <!-- Las fotos en tiempo real aparecerán aquí -->
+        </div>
     </div>
 </div>
 
 <script src="script.js"></script>
+
 </body>
 </html>

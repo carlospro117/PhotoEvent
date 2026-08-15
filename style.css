@@ -33,12 +33,12 @@ p{
     margin-bottom:20px;
 }
 
-/* OCULTAR EL INPUT REAL PERO MANTENERLO FUNCIONAL */
+/* Ocultar input real */
 #photoInput {
     display: none;
 }
 
-/* ESTILO DEL BOTÓN QUE FUNCIONA COMO ETIQUETA */
+/* Estilo de botón para la etiqueta de la cámara */
 .custom-file-upload {
     display: block;
     width: 100%;
@@ -92,8 +92,7 @@ button:disabled{
     font-weight:bold;
 }
 
-/* --- ESTILOS PARA LA GALERÍA DE FOTOS --- */
-
+/* Galería de fotos recientes */
 .recent-section {
     margin-top: 30px;
     padding-top: 20px;
