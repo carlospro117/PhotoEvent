@@ -7,34 +7,21 @@ const recentPhotos = document.getElementById("recentPhotos");
 
 let selectedFile = null;
 
-// FUNCIÓN PARA CARGAR TODAS LAS FOTOS DE LA NUBE
-async function loadGallery() {
-    try {
-        // Agregamos "?t=" y la hora actual para evitar la caché de Cloudinary y siempre pedir los datos en tiempo real
-        const timestamp = new Date().getTime();
-        const response = await fetch(`https://res.cloudinary.com/surehwg9/image/list/boda.json?t=${timestamp}`, {
-            cache: "no-store"
+// Cargar las fotos guardadas en el dispositivo al abrir la página
+function loadSavedPhotos() {
+    const saved = localStorage.getItem("boda_fotos");
+    if (saved) {
+        const photos = JSON.parse(saved);
+        recentPhotos.innerHTML = "";
+        photos.forEach(url => {
+            const imgThumbnail = document.createElement("img");
+            imgThumbnail.src = url;
+            recentPhotos.appendChild(imgThumbnail);
         });
-        
-        if (response.ok) {
-            const data = await response.json();
-            recentPhotos.innerHTML = ""; // Limpiamos antes de cargar
-            
-            // Recorremos los resultados para crear las imágenes
-            data.resources.forEach(res => {
-                const imgUrl = `https://res.cloudinary.com/surehwg9/image/upload/v${res.version}/${res.public_id}.${res.format}`;
-                const imgThumbnail = document.createElement("img");
-                imgThumbnail.src = imgUrl;
-                recentPhotos.appendChild(imgThumbnail);
-            });
-        }
-    } catch (error) {
-        console.error("Aún no hay fotos o hubo un error al cargar la galería:", error);
     }
 }
 
-// Cargar la galería apenas se abra la página
-loadGallery();
+loadSavedPhotos();
 
 // FOTO
 photoBtn.addEventListener("click", () => {
@@ -62,7 +49,6 @@ uploadBtn.addEventListener("click", async () => {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("upload_preset", "event_photos");
-    formData.append("tags", "boda"); 
 
     const resourceType = "image"; 
 
@@ -78,8 +64,17 @@ uploadBtn.addEventListener("click", async () => {
         const data = await response.json();
 
         if(response.ok) {
-            // En lugar de solo agregar la foto localmente, volvemos a descargar la lista fresca
-            loadGallery();
+            // Guardar la URL en la galería visual y en la memoria del dispositivo
+            const imageUrl = data.secure_url;
+            
+            const imgThumbnail = document.createElement("img");
+            imgThumbnail.src = imageUrl;
+            recentPhotos.insertBefore(imgThumbnail, recentPhotos.firstChild);
+
+            // Actualizar almacenamiento local para que no se pierdan al actualizar
+            let saved = JSON.parse(localStorage.getItem("boda_fotos")) || [];
+            saved.unshift(imageUrl);
+            localStorage.setItem("boda_fotos", JSON.stringify(saved));
 
             status.innerText = "🎉 ¡Gracias! Tu foto fue enviada.";
 
