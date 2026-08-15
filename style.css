@@ -33,13 +33,29 @@ p{
     margin-bottom:20px;
 }
 
-.button-row{
-    display:flex;
-    gap:12px;
+/* OCULTAR EL INPUT REAL PERO MANTENERLO FUNCIONAL */
+#photoInput {
+    display: none;
 }
 
-.button-row button{
-    flex:1;
+/* ESTILO DEL BOTÓN QUE FUNCIONA COMO ETIQUETA */
+.custom-file-upload {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 12px;
+    background: #2563eb;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: .25s;
+    text-align: center;
+}
+
+.custom-file-upload:hover {
+    background: #1d4ed8;
 }
 
 button{

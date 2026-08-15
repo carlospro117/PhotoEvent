@@ -4,7 +4,6 @@ const supabase = supabase.createClient(
 );
 
 const photoInput = document.getElementById("photoInput");
-const photoBtn = document.getElementById("photoBtn");
 const imagePreview = document.getElementById("imagePreview");
 const uploadBtn = document.getElementById("uploadBtn");
 const recentPhotos = document.getElementById("recentPhotos");
@@ -31,6 +30,16 @@ function appendPhoto(url) {
 
 loadGallery();
 
+// Vista previa al seleccionar la foto
+photoInput.addEventListener("change", () => {
+    const file = photoInput.files[0];
+    if(!file) return;
+
+    imagePreview.src = URL.createObjectURL(file);
+    imagePreview.style.display = "block";
+    uploadBtn.disabled = false;
+});
+
 // Lógica de Subida directa a Supabase Storage
 uploadBtn.addEventListener("click", async () => {
     const file = photoInput.files[0];
@@ -40,7 +49,7 @@ uploadBtn.addEventListener("click", async () => {
     uploadBtn.disabled = true;
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
+    const fileName = `${Date.now()}_${Math.random().toString(36.substring(2))}.${fileExt}`;
 
     // 1. Subir al Bucket 'PhotoEvent'
     const { data: uploadData, error } = await supabase.storage.from('PhotoEvent').upload(fileName, file);
@@ -62,11 +71,5 @@ uploadBtn.addEventListener("click", async () => {
     imagePreview.style.display = "none";
     uploadBtn.innerText = "📤 Enviar";
     photoInput.value = "";
-});
-
-photoBtn.addEventListener("click", () => photoInput.click());
-photoInput.addEventListener("change", () => {
-    imagePreview.src = URL.createObjectURL(photoInput.files[0]);
-    imagePreview.style.display = "block";
-    uploadBtn.disabled = false;
+    uploadBtn.disabled = true;
 });
